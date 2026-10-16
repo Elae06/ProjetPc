@@ -80,6 +80,8 @@
     margin-top: 10px;
     margin-left: 25%;
     font-weight: bold;
+    border: none;
+    text-align: center;
 
 }
 #zoneDetail {
@@ -134,4 +136,3 @@
     margin-top: 10px;
     font-weight: bold;
 }
-

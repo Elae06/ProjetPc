@@ -1,264 +1,196 @@
-
 var listeProduits = [];
 var panier = [];
+var produitCourant = null; // AJOUT : produit affiché dans #zoneDetail
+const TAUX_TVA =0.19;
 
-// Taux de TVA : 19 %
-const TAUX_TVA = 0.19;
-
-
-// 1. Charger les produits depuis le fichier JSON
-async function chargerZoneItem() {
-    const url = "produits.json";
-
-    try {
-        const response = await fetch(url);
-
-        if (!response.ok) {
-            throw new Error("Status " + response.status);
-        }
-
-        // Transformer le JSON en objet JavaScript
-        const objJSON = await response.json();
-
-        listeProduits = objJSON.liste;
-
-        // Afficher les produits
-        afficherListeProduits();
-
-        // Mettre à jour le nombre d'articles
-        calculerFacture();
-
-    } catch (error) {
-        alert("Erreur lors du chargement des produits : " + error.message);
-    }
-}
-
-
-// 2. Afficher les produits
 function afficherListeProduits() {
-    const zone = document.getElementById("zoneContenuItem");
-
-    // Vider la zone avant de créer les produits
-    zone.innerHTML = "";
-
     listeProduits.forEach(function(item) {
         var description = item.description;
         var image = item.image;
         var prix = item.prix;
-
-        // Créer le bloc du produit
         var noeudDivItem = document.createElement("div");
         noeudDivItem.setAttribute("class", "item");
 
-        // Créer l'image
         var noeudImage = document.createElement("img");
         noeudImage.setAttribute("class", "imageItem");
         noeudImage.setAttribute("src", image);
-        noeudImage.setAttribute("alt", description);
+        noeudDivItem.appendChild(noeudImage);
 
-        // Cliquer sur l'image pour afficher les détails
         noeudImage.addEventListener("click", function() {
             afficherDetail(item);
         });
 
-        noeudDivItem.appendChild(noeudImage);
-
-        // Créer la description
         var noeudDescription = document.createElement("div");
         noeudDescription.setAttribute("class", "description");
-        noeudDescription.textContent = description;
+        noeudDescription.appendChild(document.createTextNode(description));
         noeudDivItem.appendChild(noeudDescription);
 
-        // Créer le prix
         var noeudPrix = document.createElement("div");
         noeudPrix.setAttribute("class", "prix");
-        noeudPrix.textContent = prix + " TND";
+        noeudPrix.appendChild(document.createTextNode(prix));
         noeudDivItem.appendChild(noeudPrix);
 
-        // Créer le bouton Ajouter
         var noeudBtnAjouter = document.createElement("div");
         noeudBtnAjouter.setAttribute("class", "ajouter");
-        noeudBtnAjouter.textContent = "Ajouter";
-
-        // Ajouter une unité au panier
+        noeudBtnAjouter.appendChild(document.createTextNode("Ajouter"));
+        
+        // MODIFIÉ : on utilise la fonction commune ajouterAuPanier
         noeudBtnAjouter.addEventListener("click", function() {
-            var ligneCommande = {
-                produit: item,
-                quantite: 1
-            };
-
-            ajouterItem(ligneCommande);
+            ajouterAuPanier(item, 1);
         });
+        // ---------------------------------------------------------------------
 
         noeudDivItem.appendChild(noeudBtnAjouter);
 
-        // Ajouter le produit à la page
-        zone.appendChild(noeudDivItem);
+        document.getElementById("zoneContenuItem").appendChild(noeudDivItem);
     });
 }
 
+// --- Chargement des produits avec l'API Fetch ---
+async function chargerZone() {
+    try {
+        const response = await fetch("produits.json", {
+            headers: { Accept: "application/json" }
+        });
 
-// 3. Afficher les détails d'un produit
-function afficherDetail(unProduit) {
-    document.querySelector("#zoneDetail").style.display = "block";
-
-    // Afficher les informations du produit sélectionné
-    document.querySelector("#uneImage").src = unProduit.image;
-    document.querySelector("#uneDescription").innerHTML =
-        unProduit.description;
-    document.querySelector("#unPrix").innerHTML = unProduit.prix;
-    document.querySelector("#unDetail").innerHTML = unProduit.details;
-
-    // Action du bouton Ajouter dans la boîte de dialogue
-    document.querySelector("#unAjout").onclick = function() {
-
-        // Récupérer la quantité saisie
-        var qte = parseInt(
-            document.querySelector("#txtQuantite").value
-        );
-
-        // Vérifier la quantité
-        if (isNaN(qte) || qte < 1) {
-            alert("Veuillez saisir une quantité valide.");
-            return;
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status} ${response.statusText}`);
         }
 
-        // Créer la ligne de commande
-        var ligneCommande = {
-            produit: unProduit,
-            quantite: qte
-        };
+        const donnees = await response.json();
+        if (!donnees || !Array.isArray(donnees.liste)) {
+            throw new Error("Le format des données produits est invalide.");
+        }
 
-        // Ajouter le produit au panier
-        ajouterItem(ligneCommande);
-
-        // Fermer la boîte de dialogue
-        fermerDialogue();
-
-        // Remettre la quantité à 1
-        document.querySelector("#txtQuantite").value = 1;
-    };
+        listeProduits.length = 0;
+        listeProduits.push(...donnees.liste);
+        document.getElementById("zoneContenuItem").replaceChildren();
+        afficherListeProduits();
+    } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        alert(`Erreur lors du chargement des produits : ${message}`);
+    }
 }
 
+function afficherDetail(unProduit){
+    produitCourant = unProduit; // AJOUT
+    document.querySelector("#zoneDetail").style.display = "block";
+    document.querySelector("#uneImage").src = unProduit.image;
+    document.querySelector("#uneDescription").innerHTML = unProduit.description;
+    document.querySelector("#unPrix").innerHTML = unProduit.prix;
+    document.querySelector("#unDetail").innerHTML = unProduit.details;
+    document.querySelector("#txtQuantite").value = 1; // AJOUT
+}
 
-// 4. Fermer la boîte de dialogue
-function fermerDialogue() {
+function fermerDialogue(){
     document.querySelector("#zoneDetail").style.display = "none";
 }
 
+// AJOUT : fonction commune utilisée par les 2 boutons "Ajouter"
+function ajouterAuPanier(produit, quantite){
+    quantite = parseInt(quantite);
+    if (isNaN(quantite) || quantite < 1) quantite = 1;
 
-// 5. Ajouter un produit au panier
-function ajouterItem(ligneCommande) {
-    panier.push(ligneCommande);
-
-    // Recalculer la facture et le nombre d'articles
-    calculerFacture();
+    var existante = panier.find(function(l){
+        return l.produit === produit;
+    });
+    if (existante) {
+        existante.quantite = parseInt(existante.quantite) + quantite;
+        calculerFacture();
+    } else {
+        ajouterItem({ produit: produit, quantite: quantite });
+    }
 }
 
-
-// 6. Afficher la facture
-function afficheFacture() {
-    // Cacher les produits
+function ajouterItem(ligneCommande){
+    panier.push(ligneCommande);
+    var quantite = ligneCommande.quantite ;
+    var nbItemPanier = parseInt(document.getElementById("idItem").innerHTML);
+    nbItemPanier += parseInt(quantite);
+    document.getElementById("idItem").innerHTML = nbItemPanier;
+}
+function afficheFacture(){
     document.getElementById("zoneContenuItem").style.display = "none";
-
-    // Afficher la facture
     document.getElementById("zoneContenuFacture").style.display = "block";
+    document.getElementById("zoneContenuFacture").style.height = "85%";
 
+    var sousTotal = 0;
     var noeudTBody = document.querySelector("#corpsTableau");
-
-    // Supprimer les anciennes lignes
-    noeudTBody.innerHTML = "";
-
-    // Créer une ligne pour chaque commande
-    panier.forEach(function(ligneCommande, index) {
+    noeudTBody.innerHTML = ""; // AJOUT : évite les lignes dupliquées
+    panier.forEach(function(ligneCommande, index){
         var nomDeProduit = ligneCommande.produit.description;
         var quantite = ligneCommande.quantite;
-        var prix = parseFloat(ligneCommande.produit.prix);
+        var prix = ligneCommande.produit.prix;
+        sousTotal += parseInt(quantite) * parseFloat(prix);
 
         var noeudTr = document.createElement("tr");
-
-        // Colonne Description
         var noeudTd1 = document.createElement("td");
-        noeudTd1.textContent = nomDeProduit;
+        var contenuTd1 = document.createTextNode(nomDeProduit);
+        noeudTd1.appendChild(contenuTd1);
         noeudTr.appendChild(noeudTd1);
 
-        // Colonne Quantité
         var noeudTd2 = document.createElement("td");
-        var noeudInput = document.createElement("input");
-
-        noeudInput.setAttribute("type", "number");
-        noeudInput.setAttribute("min", "1");
-        noeudInput.setAttribute("value", quantite);
-
-        // Modifier la quantité dans la facture
-        noeudInput.addEventListener("change", function() {
-            var nouvelleQte = parseInt(this.value);
-
-            if (isNaN(nouvelleQte) || nouvelleQte < 1) {
-                nouvelleQte = 1;
-                this.value = 1;
-            }
-
+        var noeudTd21 = document.createElement("input");
+        noeudTd21.setAttribute("type", "text");
+        noeudTd21.setAttribute("value", quantite);
+        noeudTd21.addEventListener("change", function(){
+            var nouvelleQte = this.value;
             panier[index].quantite = nouvelleQte;
-
-            // Recalculer les montants
+            //enregistrerPanier();
             calculerFacture();
         });
-
-        noeudTd2.appendChild(noeudInput);
+        noeudTd2.appendChild(noeudTd21);
         noeudTr.appendChild(noeudTd2);
 
-        // Colonne Prix unitaire
         var noeudTd3 = document.createElement("td");
-        noeudTd3.textContent = prix.toFixed(2) + " TND";
+        var contenuTd3 = document.createTextNode(prix);
+        noeudTd3.appendChild(contenuTd3);
         noeudTr.appendChild(noeudTd3);
 
         noeudTBody.appendChild(noeudTr);
     });
 
-    calculerFacture();
-}
-
-
-// 7. Calculer le sous-total, la TVA et le total
-function calculerFacture() {
-    var sousTotal = 0;
-    var totalQte = 0;
-
-    // Calculer le sous-total et la quantité totale
-    panier.forEach(function(ligneCommande) {
-        var quantite = parseInt(ligneCommande.quantite);
-        var prix = parseFloat(ligneCommande.produit.prix);
-
-        sousTotal += quantite * prix;
-        totalQte += quantite;
-    });
-
-    // Calculer la TVA à 19 %
     var totalTVA = sousTotal * TAUX_TVA;
-
-    // Calculer le montant total TTC
     var total = sousTotal + totalTVA;
 
-    // Afficher les montants
-    document.querySelector("#idSousTotal").textContent =
-        sousTotal.toFixed(2) + " TND";
-
-    document.querySelector("#idTotalTVA").textContent =
-        totalTVA.toFixed(2) + " TND";
-
-    document.querySelector("#idTotal").textContent =
-        total.toFixed(2) + " TND";
-
-    // Mettre à jour le nombre total d'articles
-    document.getElementById("idItem").textContent = totalQte;
+    document.querySelector("#idSousTotal").innerHTML = sousTotal.toFixed(2) + " dt";
+    document.querySelector("#idTVA").innerHTML = totalTVA.toFixed(2) + " dt";
+    document.querySelector("#idTotal").innerHTML = total.toFixed(2) + " dt";
 }
+function calculerFacture(){
+    var sousTotal = 0;
+    var totalQte = 0;
+    panier.forEach(function(ligneCommande){
+        /*
+         un petit rappel pour la ligneCommande
+         ligneCommande = {produit : pr, quantite : qte};
+        */
+        var quantite = ligneCommande.quantite;
+        var prix = ligneCommande.produit.prix;
+        sousTotal += parseInt(quantite) * parseFloat(prix);
+        totalQte += parseInt(quantite);
+    });
+    var totalTVA = sousTotal * TAUX_TVA;
+    var total = sousTotal + totalTVA;
+    document.querySelector("#idSousTotal").innerHTML = sousTotal.toFixed(2) + " dt";
+    document.querySelector("#idTVA").innerHTML = totalTVA.toFixed(2) + " dt";
+    document.querySelector("#idTotal").innerHTML = total.toFixed(2) + " dt";
 
-
-// 8. Cliquer sur le panier pour afficher la facture
+    //Modification du panier
+    document.getElementById("idItem").innerHTML = totalQte;
+}
 var noeudPanier = document.getElementById("panier");
+noeudPanier.style.cursor = "pointer";
+noeudPanier.addEventListener("click", afficheFacture);
 
-if (noeudPanier) {
-    noeudPanier.style.cursor = "pointer";
-    noeudPanier.addEventListener("click", afficheFacture);
-}
+document.getElementById("btnContinuerMagasiner").addEventListener("click", function(){
+    document.getElementById("zoneContenuFacture").style.display = "none";
+    document.getElementById("zoneContenuItem").style.display = "block";
+});
+
+// AJOUT : bouton "Ajouter" dans la zone détail (utilise la quantité saisie)
+document.querySelector("#unAjout").addEventListener("click", function(){
+    if (produitCourant) {
+        ajouterAuPanier(produitCourant, document.querySelector("#txtQuantite").value);
+    }
+});
