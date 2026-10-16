@@ -1,0 +1,110 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Exercice 1</title>
+
+    <!-- Lier le fichier CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Lier le fichier JavaScript -->
+    <script src="script.js" defer></script>
+</head>
+
+<body onload="chargerZoneItem()">
+
+    <!-- En-tête -->
+    <div id="entete">
+        <h1>Zone d'entête</h1>
+
+        <!-- Nombre d'articles du panier -->
+        <div id="panier">
+            Nbre item :
+            <span id="idItem">0</span>
+        </div>
+    </div>
+
+    <!-- Zone où les produits seront affichés -->
+    <div id="zoneContenuItem"></div>
+
+    <!-- Zone de la facture -->
+    <div id="zoneContenuFacture">
+        <table border="1" width="50%" align="center">
+
+            <thead>
+                <tr>
+                    <th>Description</th>
+                    <th>Quantité</th>
+                    <th>Prix unitaire</th>
+                </tr>
+            </thead>
+
+            <!-- Les lignes seront créées en JavaScript -->
+            <tbody id="corpsTableau"></tbody>
+
+            <!-- Montants de la facture -->
+            <tfoot>
+                <tr>
+                    <th colspan="2">Sous-total :</th>
+                    <th id="idSousTotal">0.00 TND</th>
+                </tr>
+
+                <tr>
+                    <th colspan="2">TVA (19 %) :</th>
+                    <th id="idTotalTVA">0.00 TND</th>
+                </tr>
+
+                <tr>
+                    <th colspan="2">Grand total :</th>
+                    <th id="idTotal">0.00 TND</th>
+                </tr>
+            </tfoot>
+
+        </table>
+    </div>
+
+    <!-- Boîte de dialogue des détails du produit -->
+    <div id="zoneDetail">
+
+        <div id="petiteEntete">
+            <!-- Bouton pour fermer la boîte -->
+            <span id="idFermerDialogue" onclick="fermerDialogue()">
+                Fermer
+            </span>
+        </div>
+
+        <!-- Image du produit -->
+        <img id="uneImage" alt="Image du produit">
+
+        <!-- Description -->
+        <div>
+            Description :
+            <span id="uneDescription">XXX</span>
+        </div>
+
+        <!-- Prix -->
+        <div>
+            Prix :
+            <span id="unPrix">XXX</span>
+        </div>
+
+        <!-- Détails -->
+        <div>
+            Détail :
+            <span id="unDetail">XXX</span>
+        </div>
+
+        <!-- Quantité choisie -->
+        <div>
+            Qté :
+            <input type="number" id="txtQuantite" value="1" min="1">
+        </div>
+
+        <!-- Ajouter au panier -->
+        <div id="unAjout">Ajouter</div>
+
+    </div>
+
+</body>
+</html>
